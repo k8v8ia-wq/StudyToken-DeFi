@@ -1,0 +1,75 @@
+{
+  "contract": "AchievementReward",
+  "abi": [
+    {"inputs": [{"internalType": "address", "name": "_studyToken", "type": "address"}], "stateMutability": "nonpayable", "type": "constructor"},
+
+    {"anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "token", "type": "address"}], "name": "StudyTokenSet", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "reviewer", "type": "address"}, {"indexed": false, "internalType": "bool", "name": "enabled", "type": "bool"}], "name": "ReviewerSet", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "typeId", "type": "uint256"}, {"indexed": false, "internalType": "string", "name": "name", "type": "string"}, {"indexed": false, "internalType": "uint256", "name": "baseReward", "type": "uint256"}, {"indexed": false, "internalType": "uint256", "name": "multiplier", "type": "uint256"}], "name": "TypeAdded", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "typeId", "type": "uint256"}, {"indexed": false, "internalType": "string", "name": "name", "type": "string"}, {"indexed": false, "internalType": "uint256", "name": "baseReward", "type": "uint256"}, {"indexed": false, "internalType": "uint256", "name": "multiplier", "type": "uint256"}, {"indexed": false, "internalType": "bool", "name": "active", "type": "bool"}], "name": "TypeUpdated", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "id", "type": "uint256"}, {"indexed": true, "internalType": "address", "name": "user", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "typeId", "type": "uint256"}, {"indexed": false, "internalType": "uint256", "name": "score", "type": "uint256"}, {"indexed": false, "internalType": "uint256", "name": "rewardAmount", "type": "uint256"}], "name": "AchievementSubmitted", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "id", "type": "uint256"}, {"indexed": true, "internalType": "address", "name": "reviewer", "type": "address"}], "name": "AchievementApproved", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "id", "type": "uint256"}, {"indexed": true, "internalType": "address", "name": "reviewer", "type": "address"}], "name": "AchievementRejected", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "id", "type": "uint256"}, {"indexed": true, "internalType": "address", "name": "to", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}, {"indexed": false, "internalType": "bool", "name": "byMint", "type": "bool"}], "name": "RewardDistributed", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": false, "internalType": "bool", "name": "useMintMode", "type": "bool"}], "name": "ModeSwitched", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": false, "internalType": "uint256", "name": "newLimit", "type": "uint256"}], "name": "MintLimitUpdated", "type": "event"},
+
+    {"inputs": [], "name": "paused", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "owner", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"},
+
+    {"inputs": [], "name": "studyToken", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "useMint", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "mintLimit", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [{"internalType": "address", "name": "", "type": "address"}], "name": "reviewers", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"},
+
+    {"inputs": [{"internalType": "string", "name": "name", "type": "string"}, {"internalType": "uint256", "name": "baseReward", "type": "uint256"}, {"internalType": "uint256", "name": "multiplier", "type": "uint256"}], "name": "addAchievementType", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"internalType": "uint256", "name": "typeId", "type": "uint256"}, {"internalType": "string", "name": "name", "type": "string"}, {"internalType": "uint256", "name": "baseReward", "type": "uint256"}, {"internalType": "uint256", "name": "multiplier", "type": "uint256"}, {"internalType": "bool", "name": "active", "type": "bool"}], "name": "updateAchievementType", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+
+    {"inputs": [{"internalType": "uint256", "name": "typeId", "type": "uint256"}, {"internalType": "uint256", "name": "score", "type": "uint256"}, {"internalType": "string", "name": "reason", "type": "string"}, {"internalType": "string", "name": "evidenceURI", "type": "string"}], "name": "submitAchievement", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"internalType": "uint256", "name": "id", "type": "uint256"}], "name": "approveAchievement", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"internalType": "uint256", "name": "id", "type": "uint256"}], "name": "rejectAchievement", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+
+    {"inputs": [{"internalType": "address", "name": "_studyToken", "type": "address"}], "name": "setStudyToken", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"internalType": "address", "name": "_reviewer", "type": "address"}, {"internalType": "bool", "name": "_enabled", "type": "bool"}], "name": "setReviewer", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"internalType": "bool", "name": "_useMint", "type": "bool"}], "name": "setUseMint", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"internalType": "uint256", "name": "_limit", "type": "uint256"}], "name": "setMintLimit", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+
+    {"inputs": [], "name": "pause", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [], "name": "unpause", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+
+    {"inputs": [], "name": "getTypesCount", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "getAchievementsCount", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [{"internalType": "uint256", "name": "typeId", "type": "uint256"}], "name": "getAchievementType", "outputs": [
+      {"internalType": "string", "name": "name", "type": "string"},
+      {"internalType": "uint256", "name": "baseReward", "type": "uint256"},
+      {"internalType": "uint256", "name": "multiplier", "type": "uint256"},
+      {"internalType": "bool", "name": "active", "type": "bool"}
+    ], "stateMutability": "view", "type": "function"},
+    {
+      "inputs": [{"internalType": "uint256", "name": "id", "type": "uint256"}],
+      "name": "getAchievement",
+      "outputs": [
+        {"internalType": "address", "name": "user", "type": "address"},
+        {"internalType": "uint256", "name": "typeId", "type": "uint256"},
+        {"internalType": "uint256", "name": "score", "type": "uint256"},
+        {"internalType": "string", "name": "reason", "type": "string"},
+        {"internalType": "string", "name": "evidenceURI", "type": "string"},
+        {"internalType": "uint256", "name": "rewardAmount", "type": "uint256"},
+        {"internalType": "uint8", "name": "status", "type": "uint8"},
+        {"internalType": "uint256", "name": "timestamp", "type": "uint256"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+
+    {"inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "name": "types", "outputs": [
+      {"internalType": "string", "name": "name", "type": "string"},
+      {"internalType": "uint256", "name": "baseReward", "type": "uint256"},
+      {"internalType": "uint256", "name": "multiplier", "type": "uint256"},
+      {"internalType": "bool", "name": "active", "type": "bool"}
+    ], "stateMutability": "view", "type": "function"},
+
+    {"inputs": [], "name": "vaultBalance", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [{"internalType": "address", "name": "token", "type": "address"}, {"internalType": "address", "name": "to", "type": "address"}, {"internalType": "uint256", "name": "amount", "type": "uint256"}], "name": "recoverTokens", "outputs": [], "stateMutability": "nonpayable", "type": "function"}
+  ]
+}

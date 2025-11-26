@@ -1,0 +1,18 @@
+# Hardhat 自动生成的文件 (不要上传)
+artifacts/
+cache/
+build/
+typechain-types/
+
+# 依赖包 (不要上传，体积太大)
+node_modules/
+
+# 环境变量 (绝对不能上传！包含私钥)
+.env
+
+# Mac 系统产生的垃圾文件
+.DS_Store
+
+# 覆盖率报告
+coverage/
+coverage.json

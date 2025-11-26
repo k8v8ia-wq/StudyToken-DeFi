@@ -1,0 +1,19 @@
+{
+  "name": "stu-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StudyToken + AchievementReward local Hardhat setup",
+  "scripts": {
+    "compile": "hardhat compile",
+    "node": "hardhat node",
+    "deploy:study:localhost": "hardhat run scripts/deploy_studytoken.js --network localhost"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "dotenv": "^17.2.3"
+  }
+}

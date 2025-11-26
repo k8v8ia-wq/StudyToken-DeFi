@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyToken - MetaMask集成演示</title>
+    <!-- Web3.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .token-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .info-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .info-card .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .functions {
+            padding: 30px;
+        }
+        .function-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .function-section h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn.danger {
+            background: #f44336;
+        }
+        .btn.danger:hover {
+            background: #da190b;
+        }
+        .btn.warning {
+            background: #ff9800;
+        }
+        .btn.warning:hover {
+            background: #e68900;
+        }
+        .transactions {
+            padding: 0 30px 30px;
+        }
+        .transaction-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .transaction-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-active {
+            background: #4CAF50;
+        }
+        .status-paused {
+            background: #ff9800;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+        }
+        .notification.success {
+            background: #4CAF50;
+        }
+        .notification.error {
+            background: #f44336;
+        }
+        .notification.warning {
+            background: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 StudyToken (STU)</h1>
+            <p>学习教育代币 - MetaMask集成演示</p>
+            <div style="margin-top: 20px;">
+                <button class="btn" id="connectWallet" onclick="connectMetaMask()">🦊 连接MetaMask</button>
+                <button class="btn warning" id="disconnectWallet" onclick="disconnectMetaMask()" style="display: none;">断开连接</button>
+                <span id="walletInfo" style="margin-left: 20px; color: white;"></span>
+            </div>
+        </div>
+        <!-- MetaMask钱包状态 -->
+        <div class="token-info" style="background: #e3f2fd; border-bottom: 2px solid #2196f3;">
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>🦊 钱包状态</h3>
+                    <div class="value" id="walletStatus" style="color: #2196f3;">未连接</div>
+                </div>
+                <div class="info-card">
+                    <h3>当前账户</h3>
+                    <div class="value" id="currentAccount" style="font-size: 0.9em; color: #2196f3;">未连接</div>
+                </div>
+                <div class="info-card">
+                    <h3>网络</h3>
+                    <div class="value" id="networkName" style="color: #2196f3;">未连接</div>
+                </div>
+                <div class="info-card">
+                    <h3>ETH余额</h3>
+                    <div class="value" id="ethBalance" style="color: #2196f3;">0 ETH</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="token-info">
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>总供应量</h3>
+                    <div class="value" id="totalSupply">1,000,000 STU</div>
+                </div>
+                <div class="info-card">
+                    <h3>流通量</h3>
+                    <div class="value" id="circulatingSupply">900,000 STU</div>
+                </div>
+                <div class="info-card">
+                    <h3>管理员余额</h3>
+                    <div class="value" id="adminBalance">100,000 STU</div>
+                </div>
+                <div class="info-card">
+                    <h3>合约状态</h3>
+                    <div class="value">
+                        <span class="status-indicator status-active"></span>
+                        <span id="contractStatus">运行中</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="functions">
+            <!-- 铸造功能 -->
+            <div class="function-section">
+                <h3>🪙 铸造代币 (管理员功能)</h3>
+                <div class="form-group">
+                    <label>接收地址:</label>
+                    <input type="text" id="mintAddress" placeholder="0x..." value="0xStudent123456789">
+                </div>
+                <div class="form-group">
+                    <label>铸造数量:</label>
+                    <input type="number" id="mintAmount" placeholder="输入STU数量" value="100">
+                </div>
+                <div class="form-group">
+                    <label>铸造原因:</label>
+                    <select id="mintReason">
+                        <option value="学习成就">学习成就</option>
+                        <option value="课程完成">课程完成</option>
+                        <option value="优秀表现">优秀表现</option>
+                        <option value="特别奖励">特别奖励</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="mintTokens()">铸造代币</button>
+                <button class="btn warning" onclick="mintSimple()">简化铸造</button>
+            </div>
+
+            <!-- 转移功能 -->
+            <div class="function-section">
+                <h3>💸 转移代币</h3>
+                <div class="form-group">
+                    <label>发送地址:</label>
+                    <input type="text" id="fromAddress" placeholder="0x..." value="0xStudent123456789">
+                </div>
+                <div class="form-group">
+                    <label>接收地址:</label>
+                    <input type="text" id="toAddress" placeholder="0x..." value="0xTeacher987654321">
+                </div>
+                <div class="form-group">
+                    <label>转移数量:</label>
+                    <input type="number" id="transferAmount" placeholder="输入STU数量" value="50">
+                </div>
+                <button class="btn" onclick="transferTokens()">转移代币</button>
+            </div>
+
+            <!-- 销毁功能 -->
+            <div class="function-section">
+                <h3>🔥 销毁代币 (服务兑换)</h3>
+                <div class="form-group">
+                    <label>销毁地址:</label>
+                    <input type="text" id="burnAddress" placeholder="0x..." value="0xStudent123456789">
+                </div>
+                <div class="form-group">
+                    <label>销毁数量:</label>
+                    <input type="number" id="burnAmount" placeholder="输入STU数量" value="25">
+                </div>
+                <div class="form-group">
+                    <label>兑换服务:</label>
+                    <select id="burnReason">
+                        <option value="课程兑换">课程兑换</option>
+                        <option value="咨询服务">咨询服务</option>
+                        <option value="材料下载">材料下载</option>
+                        <option value="证书申请">证书申请</option>
+                    </select>
+                </div>
+                <button class="btn danger" onclick="burnTokens()">销毁代币</button>
+            </div>
+
+            <!-- 管理功能 -->
+            <div class="function-section">
+                <h3>⚙️ 合约管理 (管理员功能)</h3>
+                <button class="btn warning" onclick="pauseContract()">暂停合约</button>
+                <button class="btn" onclick="unpauseContract()">恢复合约</button>
+                <button class="btn" onclick="emergencyPause()">紧急暂停</button>
+                <button class="btn" onclick="refreshInfo()">刷新信息</button>
+            </div>
+        </div>
+
+        <div class="transactions">
+            <h3>📋 交易历史</h3>
+            <div class="transaction-list" id="transactionList">
+                <div class="transaction-item">
+                    <strong>初始化</strong> - 铸造 1,000,000 STU 给管理员 (初始供应)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Web3和MetaMask相关变量
+        let web3;
+        let currentAccount = null;
+        let contractInstance = null;
+        
+        // 合约配置 (示例配置，实际部署时需要替换)
+        const CONTRACT_ADDRESS = "0x1234567890123456789012345678901234567890"; // 替换为实际合约地址
+        const CONTRACT_ABI = [
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "name",
+                "outputs": [{"name": "", "type": "string"}],
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "symbol",
+                "outputs": [{"name": "", "type": "string"}],
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "totalSupply",
+                "outputs": [{"name": "", "type": "uint256"}],
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [{"name": "_owner", "type": "address"}],
+                "name": "balanceOf",
+                "outputs": [{"name": "balance", "type": "uint256"}],
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {"name": "_to", "type": "address"},
+                    {"name": "_value", "type": "uint256"}
+                ],
+                "name": "transfer",
+                "outputs": [{"name": "", "type": "bool"}],
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {"name": "_to", "type": "address"},
+                    {"name": "_amount", "type": "uint256"},
+                    {"name": "_reason", "type": "string"}
+                ],
+                "name": "mint",
+                "outputs": [],
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [{"name": "_amount", "type": "uint256"}],
+                "name": "burn",
+                "outputs": [],
+                "type": "function"
+            }
+        ];
+
+        // 模拟数据 (当没有连接真实合约时使用)
+        let contractData = {
+            totalSupply: 1000000,
+            circulatingSupply: 900000,
+            adminBalance: 100000,
+            isPaused: false,
+            balances: {
+                '0xStudent123456789': 50000,
+                '0xTeacher987654321': 25000
+            }
+        };
+
+        // 网络配置
+        const SUPPORTED_NETWORKS = {
+            1: { name: "Ethereum Mainnet", chainId: "0x1" },
+            3: { name: "Ropsten Testnet", chainId: "0x3" },
+            4: { name: "Rinkeby Testnet", chainId: "0x4" },
+            5: { name: "Goerli Testnet", chainId: "0x5" },
+            11155111: { name: "Sepolia Testnet", chainId: "0xaa36a7" },
+            97: { name: "BSC Testnet", chainId: "0x61" },
+            56: { name: "BSC Mainnet", chainId: "0x38" }
+        };
+
+        // 连接MetaMask钱包
+        async function connectMetaMask() {
+            console.log('开始连接MetaMask...');
+            
+            if (typeof window.ethereum === 'undefined') {
+                console.log('MetaMask未安装');
+                showNotification('请安装MetaMask钱包！', 'error');
+                window.open('https://metamask.io/download/', '_blank');
+                return;
+            }
+
+            try {
+                console.log('请求账户连接...');
+                // 请求连接账户
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                console.log('获取到账户:', accounts);
+                
+                if (accounts.length > 0) {
+                    currentAccount = accounts[0];
+                    web3 = new Web3(window.ethereum);
+                    
+                    console.log('设置当前账户:', currentAccount);
+                    console.log('Web3实例创建成功');
+                    
+                    // 初始化合约实例
+                    if (CONTRACT_ADDRESS && CONTRACT_ADDRESS !== "0x1234567890123456789012345678901234567890") {
+                        contractInstance = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+                        console.log('合约实例创建成功');
+                    }
+                    
+                    console.log('开始更新UI...');
+                    await updateWalletUI();
+                    setupEventListeners();
+                    showNotification('MetaMask连接成功！', 'success');
+                    
+                    // 切换到真实合约模式
+                    if (contractInstance) {
+                        loadRealContractData();
+                    }
+                } else {
+                    console.log('没有获取到账户');
+                    showNotification('未获取到账户', 'error');
+                }
+            } catch (error) {
+                console.error('连接MetaMask失败:', error);
+                showNotification('连接MetaMask失败: ' + error.message, 'error');
+            }
+        }
+
+        // 断开MetaMask连接
+        function disconnectMetaMask() {
+            currentAccount = null;
+            web3 = null;
+            contractInstance = null;
+            updateWalletUI();
+            showNotification('已断开MetaMask连接', 'warning');
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 监听账户变化
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    disconnectMetaMask();
+                } else {
+                    currentAccount = accounts[0];
+                    updateWalletUI();
+                }
+            });
+
+            // 监听网络变化
+            window.ethereum.on('chainChanged', (chainId) => {
+                updateNetworkInfo();
+                showNotification('网络已切换', 'warning');
+            });
+        }
+
+        // 更新钱包UI
+        async function updateWalletUI() {
+            const walletStatus = document.getElementById('walletStatus');
+            const currentAccountEl = document.getElementById('currentAccount');
+            const connectBtn = document.getElementById('connectWallet');
+            const disconnectBtn = document.getElementById('disconnectWallet');
+            const walletInfo = document.getElementById('walletInfo');
+
+            if (currentAccount) {
+                walletStatus.textContent = '已连接';
+                currentAccountEl.textContent = formatAddress(currentAccount);
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'inline-block';
+                walletInfo.textContent = '🦊 MetaMask已连接';
+                
+                // 更新网络和余额信息
+                await updateNetworkInfo();
+                await updateETHBalance();
+            } else {
+                walletStatus.textContent = '未连接';
+                currentAccountEl.textContent = '未连接';
+                connectBtn.style.display = 'inline-block';
+                disconnectBtn.style.display = 'none';
+                walletInfo.textContent = '';
+                
+                document.getElementById('networkName').textContent = '未连接';
+                document.getElementById('ethBalance').textContent = '0 ETH';
+            }
+        }
+
+        // 更新网络信息
+        async function updateNetworkInfo() {
+            try {
+                const chainId = await web3.eth.getChainId();
+                const network = SUPPORTED_NETWORKS[chainId];
+                const networkName = document.getElementById('networkName');
+                
+                if (network) {
+                    networkName.textContent = network.name;
+                } else {
+                    networkName.textContent = `未知网络 (Chain ID: ${chainId})`;
+                }
+            } catch (error) {
+                console.error('获取网络信息失败:', error);
+            }
+        }
+
+        // 更新ETH余额
+        async function updateETHBalance() {
+            try {
+                const balance = await web3.eth.getBalance(currentAccount);
+                const ethBalance = web3.utils.fromWei(balance, 'ether');
+                document.getElementById('ethBalance').textContent = parseFloat(ethBalance).toFixed(4) + ' ETH';
+            } catch (error) {
+                console.error('获取ETH余额失败:', error);
+            }
+        }
+
+        // 加载真实合约数据
+        async function loadRealContractData() {
+            try {
+                if (!contractInstance) return;
+
+                // 获取总供应量
+                const totalSupply = await contractInstance.methods.totalSupply().call();
+                
+                // 获取当前账户余额
+                const userBalance = await contractInstance.methods.balanceOf(currentAccount).call();
+                
+                // 更新UI
+                document.getElementById('totalSupply').textContent = 
+                    web3.utils.fromWei(totalSupply, 'ether') + ' STU';
+                
+                // 更新用户余额显示
+                updateUserBalance(userBalance);
+                
+                showNotification('已加载真实合约数据', 'success');
+            } catch (error) {
+                console.error('加载合约数据失败:', error);
+                showNotification('加载合约数据失败，使用模拟数据', 'warning');
+            }
+        }
+
+        // 更新用户余额
+        function updateUserBalance(balance) {
+            // 这里可以添加用户余额显示逻辑
+            console.log('用户余额:', web3.utils.fromWei(balance, 'ether'));
+        }
+
+        // 格式化地址显示
+        function formatAddress(address) {
+            if (!address) return '未连接';
+            return address.slice(0, 6) + '...' + address.slice(-4);
+        }
+
+        // 真实合约的铸造函数
+        async function realMint(to, amount, reason) {
+            try {
+                if (!contractInstance) {
+                    showNotification('请先连接MetaMask', 'error');
+                    return false;
+                }
+
+                const amountWei = web3.utils.toWei(amount.toString(), 'ether');
+                
+                // 调用智能合约的mint函数
+                const result = await contractInstance.methods.mint(to, amountWei, reason)
+                    .send({ from: currentAccount });
+                
+                console.log('铸造交易哈希:', result.transactionHash);
+                addTransaction('铸造', `铸造 ${amount} STU 给 ${to} (${reason}) - 交易: ${result.transactionHash.slice(0, 10)}...`);
+                return true;
+            } catch (error) {
+                console.error('铸造失败:', error);
+                showNotification('铸造失败: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // 真实合约的转移函数
+        async function realTransfer(from, to, amount) {
+            try {
+                if (!contractInstance) {
+                    showNotification('请先连接MetaMask', 'error');
+                    return false;
+                }
+
+                const amountWei = web3.utils.toWei(amount.toString(), 'ether');
+                
+                const result = await contractInstance.methods.transfer(to, amountWei)
+                    .send({ from: from });
+                
+                console.log('转移交易哈希:', result.transactionHash);
+                addTransaction('转移', `从 ${formatAddress(from)} 转移 ${amount} STU 到 ${formatAddress(to)} - 交易: ${result.transactionHash.slice(0, 10)}...`);
+                return true;
+            } catch (error) {
+                console.error('转移失败:', error);
+                showNotification('转移失败: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // 检查是否连接了MetaMask
+        function isMetaMaskConnected() {
+            return currentAccount !== null;
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        // 添加交易记录
+        function addTransaction(type, details) {
+            const list = document.getElementById('transactionList');
+            const item = document.createElement('div');
+            item.className = 'transaction-item';
+            item.innerHTML = `<strong>${type}</strong> - ${details}`;
+            list.insertBefore(item, list.firstChild);
+        }
+
+        // 更新界面信息
+        function updateUI() {
+            document.getElementById('totalSupply').textContent = contractData.totalSupply.toLocaleString() + ' STU';
+            document.getElementById('circulatingSupply').textContent = contractData.circulatingSupply.toLocaleString() + ' STU';
+            document.getElementById('adminBalance').textContent = contractData.adminBalance.toLocaleString() + ' STU';
+            
+            const statusElement = document.getElementById('contractStatus');
+            const statusIndicator = document.querySelector('.status-indicator');
+            if (contractData.isPaused) {
+                statusElement.textContent = '已暂停';
+                statusIndicator.className = 'status-indicator status-paused';
+            } else {
+                statusElement.textContent = '运行中';
+                statusIndicator.className = 'status-indicator status-active';
+            }
+        }
+
+        // 铸造代币
+        async function mintTokens() {
+            const address = document.getElementById('mintAddress').value;
+            const amount = parseInt(document.getElementById('mintAmount').value);
+            const reason = document.getElementById('mintReason').value;
+
+            if (!address || !amount || amount <= 0) {
+                showNotification('请填写完整的铸造信息', 'error');
+                return;
+            }
+
+            if (amount > 1000) {
+                showNotification('单次铸造不能超过1000 STU', 'error');
+                return;
+            }
+
+            // 如果连接了MetaMask且有真实合约，使用真实合约
+            if (isMetaMaskConnected() && contractInstance) {
+                const success = await realMint(address, amount, reason);
+                if (success) {
+                    // 刷新合约数据
+                    await loadRealContractData();
+                }
+                return;
+            }
+
+            // 否则使用模拟数据
+            if (contractData.isPaused) {
+                showNotification('合约已暂停，无法铸造代币', 'error');
+                return;
+            }
+
+            // 更新数据
+            contractData.totalSupply += amount;
+            contractData.circulatingSupply += amount;
+            contractData.balances[address] = (contractData.balances[address] || 0) + amount;
+
+            updateUI();
+            addTransaction('铸造', `铸造 ${amount} STU 给 ${address} (${reason})`);
+            showNotification(`成功铸造 ${amount} STU 给 ${address}`, 'success');
+        }
+
+        // 简化铸造
+        function mintSimple() {
+            document.getElementById('mintReason').value = '学习成就';
+            mintTokens();
+        }
+
+        // 转移代币
+        function transferTokens() {
+            if (contractData.isPaused) {
+                showNotification('合约已暂停，无法转移代币', 'error');
+                return;
+            }
+
+            const fromAddr = document.getElementById('fromAddress').value;
+            const toAddr = document.getElementById('toAddress').value;
+            const amount = parseInt(document.getElementById('transferAmount').value);
+
+            if (!fromAddr || !toAddr || !amount || amount <= 0) {
+                showNotification('请填写完整的转移信息', 'error');
+                return;
+            }
+
+            if (!contractData.balances[fromAddr] || contractData.balances[fromAddr] < amount) {
+                showNotification('发送方余额不足', 'error');
+                return;
+            }
+
+            // 更新数据
+            contractData.balances[fromAddr] -= amount;
+            contractData.balances[toAddr] = (contractData.balances[toAddr] || 0) + amount;
+
+            updateUI();
+            addTransaction('转移', `从 ${fromAddr} 转移 ${amount} STU 到 ${toAddr}`);
+            showNotification(`成功转移 ${amount} STU`, 'success');
+        }
+
+        // 销毁代币
+        function burnTokens() {
+            if (contractData.isPaused) {
+                showNotification('合约已暂停，无法销毁代币', 'error');
+                return;
+            }
+
+            const address = document.getElementById('burnAddress').value;
+            const amount = parseInt(document.getElementById('burnAmount').value);
+            const reason = document.getElementById('burnReason').value;
+
+            if (!address || !amount || amount <= 0) {
+                showNotification('请填写完整的销毁信息', 'error');
+                return;
+            }
+
+            if (!contractData.balances[address] || contractData.balances[address] < amount) {
+                showNotification('地址余额不足', 'error');
+                return;
+            }
+
+            // 更新数据
+            contractData.balances[address] -= amount;
+            contractData.totalSupply -= amount;
+            contractData.circulatingSupply -= amount;
+
+            updateUI();
+            addTransaction('销毁', `${address} 销毁 ${amount} STU (${reason})`);
+            showNotification(`成功销毁 ${amount} STU，兑换${reason}`, 'success');
+        }
+
+        // 暂停合约
+        function pauseContract() {
+            contractData.isPaused = true;
+            updateUI();
+            addTransaction('管理', '管理员暂停了合约');
+            showNotification('合约已暂停', 'warning');
+        }
+
+        // 恢复合约
+        function unpauseContract() {
+            contractData.isPaused = false;
+            updateUI();
+            addTransaction('管理', '管理员恢复了合约');
+            showNotification('合约已恢复运行', 'success');
+        }
+
+        // 紧急暂停
+        function emergencyPause() {
+            contractData.isPaused = true;
+            updateUI();
+            addTransaction('紧急管理', '管理员紧急暂停了合约');
+            showNotification('合约已紧急暂停', 'error');
+        }
+
+        // 刷新信息
+        function refreshInfo() {
+            updateUI();
+            showNotification('信息已刷新', 'success');
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成');
+            
+            // 检查MetaMask是否已连接
+            if (typeof window.ethereum !== 'undefined') {
+                console.log('检测到MetaMask');
+                window.ethereum.request({ method: 'eth_accounts' })
+                    .then(accounts => {
+                        if (accounts.length > 0) {
+                            console.log('MetaMask已连接，自动设置');
+                            currentAccount = accounts[0];
+                            web3 = new Web3(window.ethereum);
+                            
+                            if (CONTRACT_ADDRESS && CONTRACT_ADDRESS !== "0x1234567890123456789012345678901234567890") {
+                                contractInstance = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+                            }
+                            
+                            updateWalletUI();
+                            setupEventListeners();
+                            
+                            if (contractInstance) {
+                                loadRealContractData();
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('检查账户失败:', error);
+                    });
+            }
+            
+            updateUI();
+        });
+
+        // 添加调试按钮
+        function debugConnection() {
+            console.log('=== 连接调试信息 ===');
+            console.log('window.ethereum:', window.ethereum);
+            console.log('currentAccount:', currentAccount);
+            console.log('web3:', web3);
+            console.log('contractInstance:', contractInstance);
+            
+            if (window.ethereum) {
+                window.ethereum.request({ method: 'eth_accounts' })
+                    .then(accounts => {
+                        console.log('当前账户列表:', accounts);
+                    });
+            }
+        }
+
+        // 初始化
+        updateUI();
+    </script>
+</body>
+</html>

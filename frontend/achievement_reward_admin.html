@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AchievementReward 管理后台</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f7f9fc; margin: 0; padding: 20px; }
+    .container { max-width: 1080px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); overflow: hidden; }
+    .header { background: linear-gradient(45deg, #6c5ce7, #00cec9); color: white; padding: 24px; }
+    .header h1 { margin: 0; font-size: 1.8em; }
+    .section { padding: 20px; border-top: 1px solid #eef1f5; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: #fafbfc; border: 1px solid #e6e9ee; border-radius: 8px; padding: 16px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #555; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #dde3ea; border-radius: 6px; font-size: 14px; }
+    .btn { background: #6c5ce7; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #5b4ed8; }
+    .btn.secondary { background: #00cec9; }
+    .btn.secondary:hover { background: #00b5b0; }
+    .value { font-weight: 700; color: #2d3436; }
+    .notification { position: fixed; top: 20px; right: 20px; padding: 12px 16px; border-radius: 6px; color: white; display: none; }
+    .notification.success { background: #00b894; }
+    .notification.error { background: #d63031; }
+    .notification.warning { background: #fdcb6e; color: #2d3436; }
+    pre { background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #eef1f5; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚙️ AchievementReward 管理后台</h1>
+      <div style="margin-top: 10px;">
+        <button class="btn" onclick="connectWallet()">连接钱包</button>
+        <input id="rewardAddr" placeholder="输入 AchievementReward 合约地址" style="width: 52%; padding: 8px; border-radius: 6px; border: 2px solid #cde3ef; margin-left: 8px;" />
+        <button class="btn" onclick="initRewardContract()">设置合约地址</button>
+      </div>
+    </div>
+
+    <div class="section grid">
+      <div class="card">
+        <div class="form-group"><label>钱包状态</label><div class="value" id="walletStatus">未连接</div></div>
+        <div class="form-group"><label>当前账户</label><div class="value" id="currentAccount">-</div></div>
+        <div class="form-group"><label>网络</label><div class="value" id="networkName">-</div></div>
+      </div>
+      <div class="card">
+        <div class="form-group"><label>useMint</label><div class="value" id="useMint">-</div></div>
+        <div class="form-group"><label>mintLimit (STU)</label><div class="value" id="mintLimit">-</div></div>
+        <div class="form-group"><label>金库余额 (STU)</label><div class="value" id="vaultBalance">-</div></div>
+      </div>
+    </div>
+
+    <div class="section grid">
+      <div class="card">
+        <h3>设置 StudyToken 地址 / 管理员</h3>
+        <div class="form-group"><label>StudyToken 地址</label><input id="tokenAddr" placeholder="0x..." /></div>
+        <button class="btn" onclick="setStudyToken()">设置 StudyToken</button>
+        <hr />
+        <div class="form-group"><label>将 AchievementReward 设为 StudyToken 管理员</label><input id="rewardAsAdmin" placeholder="Reward 合约地址（可自动填充）" /></div>
+        <button class="btn secondary" onclick="makeRewardAdmin()">设置管理员</button>
+      </div>
+
+      <div class="card">
+        <h3>模式与限额</h3>
+        <div class="form-group"><label>useMint</label>
+          <select id="useMintSelect"><option value="true">true</option><option value="false" selected>false</option></select>
+        </div>
+        <button class="btn" onclick="switchUseMint()">切换 useMint</button>
+        <hr />
+        <div class="form-group"><label>mintLimit (STU)</label><input id="newMintLimit" type="number" placeholder="例如：1000" /></div>
+        <button class="btn" onclick="updateMintLimit()">更新 mintLimit</button>
+      </div>
+    </div>
+
+    <div class="section grid">
+      <div class="card">
+        <h3>类型管理（添加）</h3>
+        <div class="form-group"><label>名称</label><input id="typeName" placeholder="例如：课程完成" /></div>
+        <div class="form-group"><label>基础奖励 (STU)</label><input id="typeBase" type="number" placeholder="例如：10" /></div>
+        <div class="form-group"><label>乘数 (STU/分)</label><input id="typeMul" type="number" placeholder="例如：1" /></div>
+        <button class="btn" onclick="addType()">添加类型</button>
+      </div>
+      <div class="card">
+        <h3>类型管理（更新/启用）</h3>
+        <div class="form-group"><label>类型ID</label><input id="updTypeId" type="number" placeholder="例如：0" /></div>
+        <div class="form-group"><label>名称</label><input id="updTypeName" placeholder="例如：课程完成" /></div>
+        <div class="form-group"><label>基础奖励 (STU)</label><input id="updTypeBase" type="number" placeholder="例如：10" /></div>
+        <div class="form-group"><label>乘数 (STU/分)</label><input id="updTypeMul" type="number" placeholder="例如：1" /></div>
+        <div class="form-group"><label>启用</label>
+          <select id="updTypeActive"><option value="true" selected>true</option><option value="false">false</option></select>
+        </div>
+        <button class="btn" onclick="updateType()">更新类型</button>
+      </div>
+    </div>
+
+    <div class="section grid">
+      <div class="card">
+        <h3>评审管理</h3>
+        <div class="form-group"><label>评审地址</label><input id="reviewerAddr" placeholder="0x..." /></div>
+        <div class="form-group"><label>启用评审</label>
+          <select id="reviewerEnable"><option value="true">true</option><option value="false" selected>false</option></select>
+        </div>
+        <button class="btn" onclick="setReviewer()">设置评审</button>
+      </div>
+      <div class="card">
+        <h3>暂停控制</h3>
+        <button class="btn" onclick="pause()">暂停</button>
+        <button class="btn" onclick="unpause()">恢复</button>
+      </div>
+    </div>
+
+    <div class="section grid">
+      <div class="card">
+        <h3>权限与状态诊断</h3>
+        <div class="form-group"><label>Reward.owner()</label><div class="value" id="rewardOwner">-</div></div>
+        <div class="form-group"><label>当前账户是否 Reward Owner</label><div class="value" id="isRewardOwner">-</div></div>
+        <div class="form-group"><label>Reward.paused()</label><div class="value" id="rewardPaused">-</div></div>
+      </div>
+      <div class="card">
+        <h3>StudyToken 权限</h3>
+        <div class="form-group"><label>Token.admin</label><div class="value" id="tokenAdmin">-</div></div>
+        <div class="form-group"><label>当前账户是否 Token Admin</label><div class="value" id="isTokenAdmin">-</div></div>
+        <div class="form-group"><label>Token.paused()</label><div class="value" id="tokenPaused">-</div></div>
+        <div class="form-group"><button class="btn" onclick="runDiagnosis()">诊断</button></div>
+    </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <h3>类型总览</h3>
+        <div style="margin-bottom:8px;">
+          <button class="btn" onclick="refreshTypesOverview()">刷新类型列表</button>
+        </div>
+        <pre id="typesOverviewOut"></pre>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <h3>成就审核</h3>
+        <div class="grid">
+          <div>
+            <div class="form-group"><label>成就记录ID</label><input id="approveId" type="number" placeholder="例如：0" /></div>
+            <button class="btn" onclick="adminQueryAchievement()">查询</button>
+            <button class="btn secondary" onclick="approveAchievement()" style="margin-left: 8px;">批准</button>
+            <button class="btn" onclick="rejectAchievement()" style="margin-left: 8px; background:#d63031;">拒绝</button>
+          </div>
+          <div>
+            <pre id="approveQueryOut"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="notification" class="notification"></div>
+
+  <script>
+    let web3; let account = null; let reward = null; let rewardAddr = null; let rewardABI = null;
+    const DEFAULT_REWARD_ADDR = '0xA4ea8044D277Bb8A798320Aa43e75e6D4A5a10aF';
+    const DEFAULT_STU_ADDR = '0x2c6c47C8eC1E37cd4a4d8cCfaf6a802aaFd4f2a4';
+    let token = null; let tokenAddr = null; let tokenABI = null;
+
+    async function loadWeb3IfNeeded(){
+      if (typeof Web3 !== 'undefined') return;
+      await new Promise((resolve) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/web3@1.8.0/dist/web3.min.js';
+        s.onload = resolve; s.onerror = resolve; document.head.appendChild(s);
+      });
+      if (typeof Web3 === 'undefined') {
+        notify('Web3.js 加载失败，请检查网络或更换 CDN', 'error');
+      }
+    }
+
+    async function requestAccountsWithFallback(){
+      // 首选 eth_requestAccounts
+      try {
+        await window.ethereum.request({ method: 'eth_request_accounts' });
+        return true;
+      } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        // 方法不可用时尝试旧版 enable
+        if (window.ethereum && typeof window.ethereum.enable === 'function') {
+          try { await window.ethereum.enable(); return true; } catch (e2) { /* ignore */ }
+        }
+        // 尝试权限请求 + eth_accounts
+        try {
+          await window.ethereum.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
+          const accs = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accs && accs.length > 0) return true;
+        } catch (e3) { /* ignore */ }
+        throw new Error(`请求账户失败：${msg}`);
+      }
+    }
+
+    function notify(msg, type='success'){
+      const n = document.getElementById('notification');
+      n.textContent = msg; n.className = `notification ${type}`; n.style.display = 'block';
+      setTimeout(()=>{ n.style.display = 'none'; }, 3000);
+    }
+
+    // 预填奖励合约地址 & StudyToken 地址
+    (function(){
+      const rewardInput = document.getElementById('rewardAddr');
+      if (rewardInput && !rewardInput.value) {
+        rewardInput.value = DEFAULT_REWARD_ADDR;
+      }
+
+      const tokenInput = document.getElementById('tokenAddr');
+      if (tokenInput && !tokenInput.value) {
+        tokenInput.value = DEFAULT_STU_ADDR;
+      }
+
+      const rewardAsAdminInput = document.getElementById('rewardAsAdmin');
+      if (rewardAsAdminInput && !rewardAsAdminInput.value) {
+        rewardAsAdminInput.value = DEFAULT_REWARD_ADDR;
+      }
+    })();
+
+    async function connectWallet(){
+      if(!window.ethereum){ notify('未检测到 MetaMask', 'error'); return; }
+      try{
+        await loadWeb3IfNeeded();
+        await requestAccountsWithFallback();
+        web3 = new Web3(window.ethereum);
+        const accounts = await web3.eth.getAccounts(); account = accounts[0];
+        document.getElementById('walletStatus').textContent = '已连接';
+        document.getElementById('currentAccount').textContent = account;
+        const chainId = await web3.eth.getChainId(); document.getElementById('networkName').textContent = `Chain ${chainId}`;
+        notify('钱包已连接');
+        // 监听账户与网络变化
+        if (window.ethereum && window.ethereum.on) {
+          window.ethereum.on('accountsChanged', (accs)=>{
+            account = accs && accs[0] ? accs[0] : null;
+            document.getElementById('currentAccount').textContent = account || '-';
+          });
+          window.ethereum.on('chainChanged', async ()=>{
+            try{ const cid = await web3.eth.getChainId(); document.getElementById('networkName').textContent = `Chain ${cid}`; }
+            catch(err){ console.warn(err); }
+          });
+        }
+      }catch(e){ console.error(e); notify(`连接失败: ${e && e.message ? e.message : e}`, 'error'); }
+    }
+
+    async function initRewardContract(){
+      if(!web3){ notify('请先连接钱包', 'error'); return; }
+      const addr = document.getElementById('rewardAddr').value.trim();
+      if(!web3.utils.isAddress(addr)){ notify('无效的 Reward 合约地址', 'error'); return; }
+      rewardAddr = addr; document.getElementById('rewardAsAdmin').value = rewardAddr;
+      if(!rewardABI){
+        try{ const res = await fetch('/abis/AchievementReward.json'); const json = await res.json(); rewardABI = json.abi; }
+        catch(e){ console.warn('Reward ABI 加载失败'); rewardABI = []; }
+      }
+      reward = new web3.eth.Contract(rewardABI, rewardAddr);
+      notify('Reward 合约已设置');
+      await refreshReward();
+    }
+
+    async function refreshReward(){
+      try{
+        const useMint = await reward.methods.useMint().call();
+        const mintLimit = await reward.methods.mintLimit().call();
+        const vault = await reward.methods.vaultBalance().call();
+        document.getElementById('useMint').textContent = String(useMint);
+        document.getElementById('mintLimit').textContent = web3.utils.fromWei(mintLimit, 'ether');
+        document.getElementById('vaultBalance').textContent = web3.utils.fromWei(vault, 'ether');
+        tokenAddr = await reward.methods.studyToken().call();
+        document.getElementById('tokenAddr').value = tokenAddr;
+        if(tokenAddr && web3.utils.isAddress(tokenAddr)){
+          await initTokenContract(tokenAddr);
+        }
+        // 刷新后同步诊断信息
+        try { await runDiagnosis(); } catch(diagErr){ console.warn('诊断同步失败', diagErr); }
+        // 读取类型数用于提示
+        try{
+          const typesCount = await reward.methods.getTypesCount().call();
+          console.log('Types count:', typesCount);
+          await refreshTypesOverview();
+        }catch(tcErr){ console.warn('读取类型数失败', tcErr); }
+      }catch(e){ console.error(e); notify('刷新 Reward 信息失败', 'error'); }
+    }
+
+    async function addType(){
+      try{
+        if(!reward){ notify('请先设置 Reward 合约地址', 'error'); return; }
+        const name = document.getElementById('typeName').value.trim();
+        const base = document.getElementById('typeBase').value.trim();
+        const mul = document.getElementById('typeMul').value.trim();
+        if(!name){ notify('类型名称不能为空', 'error'); return; }
+        const baseWei = web3.utils.toWei(base || '0', 'ether');
+        const mulWei = web3.utils.toWei(mul || '0', 'ether');
+        const tx = await reward.methods.addAchievementType(name, baseWei, mulWei).send({ from: account });
+        notify(`添加类型成功，tx: ${tx.transactionHash}`);
+        await refreshReward();
+      }catch(e){ console.error(e); notify('添加类型失败（需要 Reward Owner 权限）', 'error'); }
+    }
+
+    async function updateType(){
+      try{
+        if(!reward){ notify('请先设置 Reward 合约地址', 'error'); return; }
+        const id = parseInt(document.getElementById('updTypeId').value);
+        const name = document.getElementById('updTypeName').value.trim();
+        const base = document.getElementById('updTypeBase').value.trim();
+        const mul = document.getElementById('updTypeMul').value.trim();
+        const active = document.getElementById('updTypeActive').value === 'true';
+        if(!name){ notify('类型名称不能为空', 'error'); return; }
+        const baseWei = web3.utils.toWei(base || '0', 'ether');
+        const mulWei = web3.utils.toWei(mul || '0', 'ether');
+        const tx = await reward.methods.updateAchievementType(id, name, baseWei, mulWei, active).send({ from: account });
+        notify(`更新类型成功，tx: ${tx.transactionHash}`);
+        await adminQueryAchievement();
+      }catch(e){ console.error(e); notify('更新类型失败（需要 Reward Owner 权限）', 'error'); }
+    }
+
+    async function initTokenContract(addr){
+      try{
+        if(!tokenABI){
+          const res = await fetch('/abis/StudyToken_pure.json'); const json = await res.json(); tokenABI = json.abi;
+        }
+        token = new web3.eth.Contract(tokenABI, addr);
+      }catch(e){ console.error(e); notify('初始化 StudyToken 失败', 'error'); }
+    }
+
+    async function setStudyToken(){
+      try{
+        const addr = document.getElementById('tokenAddr').value.trim();
+        if(!web3.utils.isAddress(addr)){ notify('无效的 StudyToken 地址', 'error'); return; }
+        const tx = await reward.methods.setStudyToken(addr).send({ from: account });
+        notify(`StudyToken 设置成功，tx: ${tx.transactionHash}`);
+        await refreshReward();
+      }catch(e){ console.error(e); notify('设置 StudyToken 失败', 'error'); }
+    }
+
+    async function makeRewardAdmin(){
+      try{
+        const rewardAdminAddr = document.getElementById('rewardAsAdmin').value.trim();
+        if(!token || !tokenAddr){ notify('请先设置或刷新 StudyToken', 'error'); return; }
+        if(!web3.utils.isAddress(rewardAdminAddr)){ notify('无效的 Reward 地址', 'error'); return; }
+        // 预检当前账户是否为 StudyToken 管理员
+        try {
+          const isAdmin = await token.methods.isAdmin(account).call();
+          if(!isAdmin){
+            const adminAddr = await token.methods.admin().call();
+            notify(`当前账户不是 StudyToken 管理员（admin=${adminAddr}）`, 'error');
+            return;
+          }
+        } catch (preErr) { console.warn('isAdmin 预检失败', preErr); }
+        // 调用 StudyToken.changeAdmin(rewardAdminAddr)
+        const tx = await token.methods.changeAdmin(rewardAdminAddr).send({ from: account });
+        notify(`管理员设置成功，tx: ${tx.transactionHash}`);
+      }catch(e){ console.error(e); notify('设置管理员失败（需要当前管理员权限）', 'error'); }
+    }
+
+    async function switchUseMint(){
+      try{
+        const v = document.getElementById('useMintSelect').value === 'true';
+        const tx = await reward.methods.setUseMint(v).send({ from: account });
+        notify(`useMint 切换成功，tx: ${tx.transactionHash}`);
+        await refreshReward();
+      }catch(e){ console.error(e); notify('切换 useMint 失败', 'error'); }
+    }
+
+    async function updateMintLimit(){
+      try{
+        const limit = document.getElementById('newMintLimit').value.trim();
+        const limitWei = web3.utils.toWei(limit || '0', 'ether');
+        const tx = await reward.methods.setMintLimit(limitWei).send({ from: account });
+        notify(`mintLimit 已更新，tx: ${tx.transactionHash}`);
+        await refreshReward();
+      }catch(e){ console.error(e); notify('更新 mintLimit 失败', 'error'); }
+    }
+
+    async function setReviewer(){
+      try{
+        const addr = document.getElementById('reviewerAddr').value.trim();
+        if(!web3.utils.isAddress(addr)){ notify('无效评审地址', 'error'); return; }
+        const enabled = document.getElementById('reviewerEnable').value === 'true';
+        const tx = await reward.methods.setReviewer(addr, enabled).send({ from: account });
+        notify(`评审设置成功，tx: ${tx.transactionHash}`);
+      }catch(e){ console.error(e); notify('设置评审失败', 'error'); }
+    }
+
+    async function pause(){
+      try{ const tx = await reward.methods.pause().send({ from: account }); notify(`已暂停，tx: ${tx.transactionHash}`); }
+      catch(e){ console.error(e); notify('暂停失败', 'error'); }
+    }
+    async function unpause(){
+      try{ const tx = await reward.methods.unpause().send({ from: account }); notify(`已恢复，tx: ${tx.transactionHash}`); }
+      catch(e){ console.error(e); notify('恢复失败', 'error'); }
+    }
+
+    async function adminQueryAchievement(){
+      try{
+        if(!reward){ notify('请先设置 Reward 合约地址', 'error'); return; }
+        const id = parseInt(document.getElementById('approveId').value);
+        const res = await reward.methods.getAchievement(id).call();
+        const out = {
+          user: res.user,
+          typeId: Number(res.typeId),
+          score: Number(res.score),
+          reason: res.reason,
+          evidenceURI: res.evidenceURI,
+          rewardAmount: web3.utils.fromWei(res.rewardAmount, 'ether'),
+          status: Number(res.status),
+          timestamp: Number(res.timestamp)
+        };
+        document.getElementById('approveQueryOut').textContent = JSON.stringify(out, null, 2);
+      }catch(e){ console.error(e); notify('查询失败', 'error'); }
+    }
+
+    async function approveAchievement(){
+      try{
+        if(!reward){ notify('请先设置 Reward 合约地址', 'error'); return; }
+        const id = parseInt(document.getElementById('approveId').value);
+        const tx = await reward.methods.approveAchievement(id).send({ from: account });
+        notify(`已批准并发奖，tx: ${tx.transactionHash}`);
+        await adminQueryAchievement();
+        await refreshReward();
+      }catch(e){ console.error(e); notify('批准失败（请检查权限与余额）', 'error'); }
+    }
+
+    async function rejectAchievement(){
+      try{
+        if(!reward){ notify('请先设置 Reward 合约地址', 'error'); return; }
+        const id = parseInt(document.getElementById('approveId').value);
+        const tx = await reward.methods.rejectAchievement(id).send({ from: account });
+        notify(`已拒绝，tx: ${tx.transactionHash}`);
+        await adminQueryAchievement();
+      }catch(e){ console.error(e); notify('拒绝失败（请检查权限）', 'error'); }
+    }
+
+    async function runDiagnosis(){
+      try{
+        if(!web3 || !reward){ notify('请先连接钱包并设置 Reward 地址', 'error'); return; }
+        // Reward 所有者与暂停状态
+        try {
+          const owner = await reward.methods.owner().call();
+          document.getElementById('rewardOwner').textContent = owner;
+          document.getElementById('isRewardOwner').textContent = String(owner && owner.toLowerCase() === (account||'').toLowerCase());
+        } catch(e1){ console.warn('读取 Reward.owner 失败', e1); }
+        try {
+          const paused = await reward.methods.paused().call();
+          document.getElementById('rewardPaused').textContent = String(paused);
+        } catch(e2){ console.warn('读取 Reward.paused 失败', e2); }
+        // Token 权限与暂停
+        if(token){
+          try {
+            const adminAddr = await token.methods.admin().call();
+            document.getElementById('tokenAdmin').textContent = adminAddr;
+            const isAdmin = await token.methods.isAdmin(account).call();
+            document.getElementById('isTokenAdmin').textContent = String(isAdmin);
+          } catch(e3){ console.warn('读取 Token.admin/isAdmin 失败', e3); }
+          try {
+            const tPaused = await token.methods.paused().call();
+            document.getElementById('tokenPaused').textContent = String(tPaused);
+          } catch(e4){ console.warn('读取 Token.paused 失败', e4); }
+        } else {
+          document.getElementById('tokenAdmin').textContent = '-';
+          document.getElementById('isTokenAdmin').textContent = '-';
+          document.getElementById('tokenPaused').textContent = '-';
+        }
+        notify('诊断完成');
+      }catch(e){ console.error(e); notify('诊断失败', 'error'); }
+    }
+    async function refreshTypesOverview(){
+      try{
+        if(!reward){ document.getElementById('typesOverviewOut').textContent = '请先设置 Reward 合约地址'; return; }
+        const count = await reward.methods.getTypesCount().call();
+        const list = [];
+        for(let i=0;i<Number(count);i++){
+          try{
+            let t;
+            try {
+              t = await reward.methods.getAchievementType(i).call();
+            } catch (e1) {
+              // 回退到自动 getter types(i)
+              t = await reward.methods.types(i).call();
+            }
+            list.push({
+              id: i,
+              name: t.name,
+              baseReward: web3.utils.fromWei(t.baseReward, 'ether'),
+              multiplier: web3.utils.fromWei(t.multiplier, 'ether'),
+              active: !!t.active
+            });
+          }catch(inner){ list.push({ id: i, error: '读取失败' }); }
+        }
+        document.getElementById('typesOverviewOut').textContent = JSON.stringify(list, null, 2);
+      }catch(e){ console.error(e); notify('类型列表刷新失败', 'error'); }
+    }
+  </script>
+</body>
+</html>
