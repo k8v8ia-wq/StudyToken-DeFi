@@ -1,49 +1,60 @@
-# CDS528 - StudyToken 与 AchievementReward 前后端整合
+# CDS528 Group Project Code - EduMerit Platform
 
-该目录整合了 StudyToken 与 AchievementReward 的合约、ABI、前端页面与部署脚本，便于统一使用与维护。
+> **StudyToken (STU) & AchievementReward 前后端整合项目**
+> 本项目实现了一个基于区块链的去中心化激励平台，包含完整的智能合约、ABI 接口、前端交互页面及部署脚本。
 
-## 目录结构
-- `contracts/`
-  - `StudyToken_pure.sol`：STU 代币合约。
-  - `achivementreward.sol`：成就奖励合约。
-- `abis/`
-  - `StudyToken_pure.json`：StudyToken ABI。
-  - `AchievementReward.json`：AchievementReward ABI。
-- `frontend/`
-  - `achievement_reward_front.html`：用户提交与查询页面。
-  - `achievement_reward_admin.html`：管理后台页面（设置 StudyToken、useMint、mintLimit、评审与暂停）。
-  - `study_token_demo.html`：StudyToken 演示页（管理员操作如铸币与更换管理员）。
-- `scripts/`
-  - `deploy_studytoken.js`：StudyToken 部署脚本。
-  - `deploy_achievementreward.js`：AchievementReward 部署脚本。
+## 项目概览 (Overview)
+该平台旨在通过双重激励机制（铸造模式 vs 金库模式）来奖励学生的学术成就。项目整合了 `StudyToken` (ERC20) 与 `AchievementReward` (逻辑控制) 两个核心合约，并提供了配套的管理端与用户端前端界面。
 
-## 启动与访问
-进入 `CDS528` 目录并启动本地静态服务器：
+---
 
-```
-cd CDS528
-py -m http.server 8000
-```
+## 👥 小组成员 (Group Members)
+| 姓名 (Name) | 学号 (ID) | 角色 (Role) |
+| :--- | :--- | :--- |
+| **ZHENG GuangYuan** | (5541645) | Testing & Security &DevOps |
+| **WU Ke** | (填写学号) | Frontend & Integration |
+| **Gan Haohong** | (填写学号) | Backend & UI/UX Design|
+| **ZHUANG Jingkun** | (填写学号) | Documentation |
+| **LIAO Ziang** | (填写学号) | Testing & Security |
 
-打开页面：
-- 用户页：`http://localhost:8000/frontend/achievement_reward_front.html`
-- 管理页：`http://localhost:8000/frontend/achievement_reward_admin.html`
-- 代币页：`http://localhost:8000/frontend/study_token_demo.html`
+---
 
-## 使用流程简述
-1. 如需铸造模式（useMint=true）：
-   - 在 StudyToken 上将 AchievementReward 设为管理员（StudyToken 更换管理员）。
-   - 在 AchievementReward 上切换 `useMint=true`，并设置合适的 `mintLimit`（单位 STU，前端会转换为 18 位精度）。
-2. 如需金库模式（useMint=false）：
-   - 给 AchievementReward 合约地址转入足够的 STU（作为金库余额），审核通过后直接转账发奖。
-3. 用户提交与查询在用户页进行；审核与参数管理在管理页进行。
+##  Video (演示视频)
+**[点击这里观看项目演示视频 (Click to Watch)](在此处粘贴你的Youtube或Drive视频链接)**
 
-## 注意事项
-- 钱包网络需与合约部署网络一致（如本地/测试网）。
-- ABI 由前端从 `abis` 目录加载；若更新合约请重新生成 ABI。
-- 管理员权限严格控制；更换管理员需要当前管理员账户进行。
-- `mintLimit` 输入使用 STU 直觉单位，内部转换为 Wei（18 位）。
+---
 
-## 其他
-- 项目配置文件（`hardhat.config.js`、`package.json`）已迁移到 `CDS528` 目录，建议在该目录下执行 Hardhat 与 npm 命令。
-- 如需进一步精简，可继续迁移或归档文档文件；若删除受限，可改为移动到 `CDS528` 下进行归档。
+## 目录结构 (Directory Structure)
+
+本项目根目录为 `CDS528_group_project_code`，核心文件结构如下：
+
+- **`contracts/`** (智能合约源文件)
+  - `StudyToken_pure.sol`：STU 代币合约（包含 Mint/Pause 功能）。
+  - `achivementreward.sol`：成就奖励逻辑合约（处理审核、发奖）。
+
+- **`abis/`** (前端交互接口)
+  - `StudyToken_pure.json`：StudyToken 的 ABI 文件。
+  - `AchievementReward.json`：AchievementReward 的 ABI 文件。
+
+- **`frontend/`** (Web3 前端页面)
+  - `achievement_reward_front.html`：**用户端**，用于学生提交成就证明与查询状态。
+  - `achievement_reward_admin.html`：**管理端**，管理员在此设置参数（MintLimit）、审核申请、暂停系统。
+  - `study_token_demo.html`：**代币演示页**，用于管理员手动铸币或转移权限。
+
+- **`scripts/`** (Hardhat 部署脚本)
+  - `deploy_studytoken.js`：部署 Token 合约。
+  - `deploy_achievementreward.js`：部署奖励合约并关联 Token。
+
+---
+
+## 快速启动与安装 (Setup & Installation)
+
+### 1. 环境准备
+确保本地已安装 Node.js 和 Git。
+
+```bash
+git clone [https://github.com/k8v8ia-wq/StudyToken-DeFi.git](https://github.com/k8v8ia-wq/StudyToken-DeFi.git)
+
+cd CDS528_group_project_code
+
+npm install
